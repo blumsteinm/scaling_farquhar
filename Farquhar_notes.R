@@ -49,6 +49,7 @@ K2 <- function(Tv) {0.836 * exp(-1400 * ((1/288.15) - (1/Tv))) }
 # ea # ea = atmospheric water concentration - meterology?
 # PAR - photon flux density, 500-2000
 # J = 0 - 250 (put alpha*PAR instead of J)
+# Ca = [atm CO2]
 
 # Do = optimized 
 Tv  = seq(274, 315, 1)
@@ -86,5 +87,3 @@ plot(Ci, A2(Ci))
 
 points(Ci, A1(Ci))
 plot(Ci, A2(Ci), col='red', ylim=c(0, max(A2(Ci))))
-
-   
