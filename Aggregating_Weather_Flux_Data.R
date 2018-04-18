@@ -57,6 +57,10 @@ flux$minute <- minute
 flux_weather <- merge(weather, flux[c("year", "month", "day", "hour", "minute", "co2")], all.x = T)
 colnames(flux_weather)[which(colnames(flux_weather) == "co2")] <- "Atmospheric_CO2"
 
+## Calculate VPD
+flux_weather$svp <- 610.7*10^(7.5*(flux_weather$Air_Temp_K - 273.15)/(flux_weather$Air_Temp_K - 273.15 + 237.3))
+flux_weather$VPD <- ( (100 - flux_weather$Relative_Humidity_Percent)/100 ) * flux_weather$svp
+
 ## Save Out
 write.csv(flux_weather, paste0(github_folder, "Aggregated_Climate_Data.csv"), row.names = F)
 
