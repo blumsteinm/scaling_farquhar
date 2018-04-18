@@ -1,14 +1,52 @@
 ##### Farquhar Modeling equations
 
-## Equation 1: Farquhar Model - take minimum
+### Equation 1: Farquhar Model - take minimum of light-limited vs. temperature limited
 # A1 = (Vcmax * (Ci-comp)) / (Ci + Kc * (1 + O/K0)) - Rday   # units: umol CO2 / m2 / sec
 #     (Vcmax * (Ci - comp)) / (Ci + K1*(1+K2)) - Rday
 
+
+A1<- function(Ci = Ci, Vmo = 35, Tvlo = 300, Tv = Tv, gamma = 0.015) {
+   VCmax_fixedT <- Vcmax(Vmo = Vmo, Tvlo = Tvlo, Tv = Tv)
+   Rday <- gamma * VCmax_fixedT
+   
+   A <- (VCmax_fixedT * (Ci - comp(Tv))) / (Ci + K1(Tv)*(1+K2(Tv))) - Rday
+   return(A)
+}
+
 # A2 = alpha * PAR * ((Ci - comp) / (Ci + 2 * comp)) - Rday
 
-## Equation 2: Stomatal conductance Model
-# gsw = ((M * A) / ((Cx - comp) * (1 + (el - es)/Do))) + b    # open stomata
+A2 <- function(Ci = Ci, PAR = 1000, Vmo = 35, Tvlo = 300, Tv = Tv, alpha = 0.06, gamma = 0.015) {
+   VCmax_fixedT <- Vcmax(Vmo = Vmo, Tvlo = Tvlo, Tv = Tv)
+   Rday <- gamma * VCmax_fixedT
+   
+   A <- alpha * PAR * ((Ci - comp(Tv)) / (Ci + 2 * comp(Tv))) - Rday
+   return(A)
+}
+
+Amin <- function (Ci, PAR, Vmo, Tvlo, Tv, gamma = 0.015, alpha = 0.06) {
+   A1val <- A1(Ci = Ci, Vmo = Vmo, Tvlo = Tvlo, Tv = Tv, gamma = gamma)
+   A2val <- A2(Ci = Ci, PAR = PAR, Vmo = Vmo, Tvlo = Tvlo, Tv = Tv, alpha = alpha, gamma = gamma)
+   minval <- min(A1val, A2val)
+}
+
+   
+
+
+### Equation 2: Stomatal conductance Model
+# gsw = ((M * A) / ((Cs - comp) * (1 + (el - es)/Do))) + b    # open stomata
 #       b                                                     # closed stomata
+
+# b <- function (Tv) {}
+
+gsw <- function(M = const1, Do = cons2, b = const3, Cs = Cons4, Tv = Tv, open = TRUE) {
+   if(open == TRUE) {
+      gsw <- ((M * Amin) / ((Cs - comp(Tv)) * (1 + (el - es)/Do))) + b
+   }
+   else {
+      gsw <- b
+   }
+}
+
 
 
 ## Equation 3: 
@@ -28,8 +66,6 @@ Vcmax <- function (Vmo, Tvlo, Tv) {  #Vmo, Tvlo are constants
 # Vmo = Vc at 25C or 15C  #Vcmax should be ~40 at 25 degrees
 # Tvlo = Low temperature threshold (Kelvin)
 # Tv = leaf temperature (Kelvin)
-
-plot(Tv, Vcmax(Vmo = 30, Tvlo = 300, Tv = Tv), col='blue')
 
 # comp = 21.2 * exp(5000 * ((1/288.15) - (1/Tv)))  #CO2 compensation point where photosynthesis = respiration 
 comp <- function(Tv) { 21.2 * exp(5000 * ((1/288.15) - (1/Tv))) } #units: umol/mol
@@ -52,38 +88,19 @@ K2 <- function(Tv) {0.836 * exp(-1400 * ((1/288.15) - (1/Tv))) }
 # Ca = [atm CO2]
 
 # Do = optimized 
-Tv  = seq(274, 315, 1)
-
-
-K1 <- function(Tv) { 150 * exp(6000 * ((1/288.15) - (1/Tv)))} 
-K1 (Tv)
-
 
 ##### Testing Farquhar (Equation 1 above) 
 Tv  = seq(274, 315, 1)
 Ci = seq(100, 400, 1)
 
-A1<- function(Ci = Ci, Vmo = 35, Tvlo = 300, Tv = Tv, gamma = 0.015) {
-   VCmax_fixedT <- Vcmax(Vmo = Vmo, Tvlo = Tvlo, Tv = Tv)
-   Rday <- gamma * VCmax_fixedT
-   
-   A <- (VCmax_fixedT * (Ci - comp(Tv))) / (Ci + K1(Tv)*(1+K2(Tv))) - Rday
-   return(A)
-}
 
 plot(Ci, A1(Ci))
 
-
-A2 <- function(Ci = Ci, PAR = 1000, Vmo = 35, Tvlo = 300, Tv = Tv, alpha = 0.06, gamma = 0.015) {
-   VCmax_fixedT <- Vcmax(Vmo = Vmo, Tvlo = Tvlo, Tv = Tv)
-   Rday <- gamma * VCmax_fixedT
-   
-   A <- alpha * PAR * ((Ci - comp(Tv)) / (Ci + 2 * comp(Tv))) - Rday
-   return(A)
-}
 
 plot(Ci, A2(Ci))
 
 
 points(Ci, A1(Ci))
 plot(Ci, A2(Ci), col='red', ylim=c(0, max(A2(Ci))))
+
+plot(Tv, Vcmax(Vmo = 30, Tvlo = 300, Tv = Tv), col='blue')
