@@ -2,9 +2,12 @@
 ## Load necessary packages
 require(plyr)
 
+## Set working directory
+github_folder <- "/Users/Meghs/Documents/GitHub/scaling_farquhar/"
+
 ## Read in Data
-weather <- read.csv("/Users/Meghs/Downloads/hf001-10-15min-m.csv")
-flux <- read.csv("/Users/Meghs/Downloads/hf103-03-flux-2004-2013.csv")
+weather <- read.csv(paste0(github_folder, "hf001-10-15min-m.csv"))
+flux <- read.csv(paste0(github_folder, "hf103-03-flux-2004-2013.csv"))
 
 ## Subset weather data into relevant parameters (PAR, AirTemp, & RH)
 weather_subset <- weather[c("datetime", "jd", "airt", "parr", "rh")]
@@ -37,9 +40,28 @@ weather <- ddply(weather_subset, .(summary_increment, year, month, day), summari
            Relative_Humidity_Percent = mean(rh, na.rm = T) 
            )
 
+
+## Date/Time split flux data for mearge
+dates <- flux$datetime
+month <- format(as.Date(dates), format = "%m") ## month
+day <- format(as.Date(dates), format = "%d") ## Day
+hour <- sapply(as.character(dates), function(x) strsplit( strsplit(x, split = "T")[[1]][2], split = ":")[[1]][1] )
+minute <- sapply(as.character(dates), function(x) strsplit( strsplit(x, split = "T")[[1]][2], split = ":")[[1]][2] )
+
+flux$month <- month
+flux$day <- day
+flux$hour <- hour
+flux$minute <- minute
+
 ## merge with relevant flux parameters (co2)
-(as.numeric(as.POSIXct(strptime(t, format = "%M:%OS"))) - 
-    as.numeric(as.POSIXct(strptime("0", format = "%S"))))
+flux_weather <- merge(weather, flux[c("year", "month", "day", "hour", "minute", "co2")], all.x = T)
+colnames(flux_weather)[which(colnames(flux_weather) == "co2")] <- "Atmospheric_CO2"
+
+## Save Out
+write.csv(flux_weather, paste0(github_folder, "Aggregated_Climate_Data.csv"), row.names = F)
+
+
+
 
 # PAR (mol/m-2s-1) (micromolePerMeterSquaredPerSecond)
 # Air temperature (K) (C)
