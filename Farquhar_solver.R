@@ -1,5 +1,9 @@
-##### Farquhar Modeling equations
+####################################################
+#                 Farquhar_solver                  #
+#        OEB203 project code, spring 2018          #
+####################################################
 
+##### The system of equations #####
 ### Equation 1: Farquhar Model - take minimum of light-limited vs. temperature limited
 ## CO2 limited
 # A1 = (Vcmax * (Ci-comp)) / (Ci + Kc * (1 + O/K0)) - Rd   # units: umol CO2 / m2 / sec
@@ -27,15 +31,6 @@ A2 <- function(Ci, Tv, PAR = 1000, Vmo = 35, alpha = 0.04, gamma = 0.015) {
    return(A)
 }
 
-Amin <- function (Ci, Tv, PAR = 100, Vmo = 35, Tvlo = 300, gamma = 0.015, alpha = 0.04) {
-   A1val <- A1(Ci = Ci, Vmo = Vmo, Tvlo = Tvlo, Tv = Tv, gamma = gamma)
-   A2val <- A2(Ci = Ci, PAR = PAR, Vmo = Vmo, Tvlo = Tvlo, Tv = Tv, alpha = alpha, gamma = gamma)
-   minval <- min(A1val, A2val)
-   return(minval)
-}
-
-Amin(Ci, Tv = 300)
-
 
 ### Equation 2: Stomatal conductance Model (Leunning)
 # gsw = ((M * A) / ((Cs - comp) * (1 + (el - es)/Do))) + b    # open stomata
@@ -51,21 +46,15 @@ gsw <- function(Amin, M = 9, Do = 1.3, b = 2, Ca, Tv, open = TRUE) {
    }
 }
 
-# M = stomatal slope = 9
-# b = cuticular conductance = 2 (Anfodillo et al 2002, Tree Physiology)
-# Ca = atmospheric composition of CO2
-# Do = 1.3 kPa, (Launiainen et al 2011, Agricultural and Forest Meterology)
-
 
 ## Equation 3: 
 # A = (-gsw / 1.6) * (Ci  - Ca)
 
-## Equation 4: Water flux
+## Equation 4: Water flux (not necessary?) 
 # Phi = gsw * (el - ea) 
 
-# Solve for: A, Ci, gsw, Phi
 
-
+##### The calculated variables #####
 #### Parameters we can calculate or get trait values for: 
 # Vcmax = (Vmo * exp(3000*(1/288.15 -1/Tv))) / ((1+exp(.4(Tvlo - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
 # Vcmax <- function (Vmo, Tvlo, Tv) {  #Vmo, Tvlo are constants 
@@ -101,10 +90,10 @@ K2 <- function(Tv) {0.836 * exp(-1400 * ((1/288.15) - (1/Tv))) }
 # el # saturated leaf concentration - 100
 # ea = atmospheric water concentration - meterology?
 # Saturation vapor pressure equation: el = a * exp(b*T/(T+c)) 
-   # T is temperature (degrees C) of the *leaf*
-   # a = 0.611 kPa
-   # b = 17.502
-   # c = 240.97 degrees C
+# T is temperature (degrees C) of the *leaf*
+# a = 0.611 kPa
+# b = 17.502
+# c = 240.97 degrees C
 # function to convert kelvin to celcius for input into the saturated leaf function (el)
 convertTv <- function(Tv) {
    TvC <- Tv -273.15
@@ -126,62 +115,8 @@ ea <- function (relHum, Tv) {
 # J = 0 - 250 (put alpha*PAR instead of J)
 # Ca = [atm CO2]
 
-
-# ##### Testing Farquhar (Equation 1 above) 
-# Tv  = seq(274, 315, 1)
-# Ci = seq(100, 400, 1)
-# 
-# 
-# plot(Ci, A1(Ci, Tv = 298))
-# 
-# 
-# plot(Ci, A2(Ci, Tv = 298))
-# 
-# 
-# points(Ci, A1(Ci))
-# plot(Ci, A2(Ci), col='red', ylim=c(0, max(A2(Ci))))
-# 
-# plot(Tv, Vcmax(Vmo = 30, Tvlo = 300, Tv = Tv), col='blue')
-
-
-
-##### Dummy data #####
-dummy <- data.frame(time = c(0:23))
-dummy$Tv <- c(seq(280,300, length.out = 12), seq(300, 280, length.out = 12))
-dummy$relHum <- c(rep(70, 3), 80, 80, 90, 100, 100, 90, 80, 70, 60, 50, 40, 50, 60, rep(70, 8))
-dummy$Ca <- rep(400, 24)
-dummy$comp <- comp(Tv = dummy$Tv)
-dummy$Vcmax <- Vcmax(Vmo = 35, Tv = dummy$Tv)
-dummy$el <- el(Tv = dummy$Tv)
-dummy$ea <- ea(relHum = dummy$relHum, Tv = dummy$Tv)
-dummy$PAR <- c(rep(0, 5), seq(0, 0.002, length.out = 7), seq(0.002, 0, length.out = 7), rep(0,5))
-
-
-
-##### Real data #####
-dat <- read.csv('Aggregated_Climate_Data.csv', header=TRUE)
-dat$Tv <- dat$Air_Temp_K 
-dat$relhum <- dat$Relative_Humidity_Percent
-dat$Ca <- dat$Atmospheric_CO2
-dat$comp <- comp(Tv = dat$Tv)
-dat$Vcmax <- Vcmax(Vmo = 35, Tv = dat$Tv)
-dat$el <- el(Tv = dat$Tv)
-dat$ea <- ea(relHum = dat$relhum, Tv = dat$Tv)
-dat$PAR <- dat$Par_moles_m2_s
-
-
-
-##### To solve the quadratic: #####
-# uses function polyroot {base} where polyroot(z) gives roots of a polynomial
-# with coefficients in the vector z, for the polynomial of hte form: 
-# z1 + z2*x + z3*x^2 + z4*x^3 + ... + zn * x^(n-1)
-
-##### Solver Equation/function #####
-farquharSolver <- function (input.df, stomata = c('open', 'closed')) { 
-   # inputs in main function call
-   dat.sub <- dat[1:100,]
-   input.df <- dummy
-   
+##### The Farquhar Solver Function #####
+farquhar_solver <- function (input.df, stomata = c('open', 'closed')) { 
    ## defaults that we'd like to avoid including in the giant function call
    gamma <- 0.015
    Vmo <- 35
@@ -195,7 +130,7 @@ farquharSolver <- function (input.df, stomata = c('open', 'closed')) {
    k1.dat <- K1(input.df$Tv)
    k2.dat <- K2(input.df$Tv)
    X = k1.dat * (1 + k2.dat)
-   Y <- alpha * input.df$PAR * 1000000
+   Y <- alpha * input.df$PAR
    FF <- ((input.df$Ca - input.df$comp) * (1 + ((input.df$el - input.df$ea)/Do)))
    
    ### stomata closed ###
@@ -208,10 +143,17 @@ farquharSolver <- function (input.df, stomata = c('open', 'closed')) {
       z <- data.frame(aa = aa, bb = bb, cc = cc)  # where aa + bb*c1 + cc*c1^2
       #solve the polynomial
       roots <- apply(z, 1, polyroot)
+      
+      if(round(Im(roots[1]), 10) != 0) { 
+         stop("quadratic roots are imaginary") 
+      }
+      
       #coerce into non-imaginary components
-      roots.num <- apply(roots, 1, as.numeric)
+      roots.num <- Re(roots)
       #extract the non-negative value
-      Ci.extract.A1 <- apply(roots.num, 1, max) 
+      Ci.extract.A1 <- max(roots.num) 
+      
+      # calculate A
       AA1 <- A1(Ci.extract.A1, input.df$Tv, Vmo = Vmo, gamma = gamma)
       
       ### Light limited case, coefficients for polyroot function
@@ -223,12 +165,21 @@ farquharSolver <- function (input.df, stomata = c('open', 'closed')) {
       z <- data.frame(aa = aa, bb = bb, cc = cc)  # where aa + bb*c1 + cc*c1^2
       #solve the polynomial
       roots <- apply(z, 1, polyroot)
+      
+      if(round(Im(roots[1]), 10) != 0) { 
+         stop("quadratic roots are imaginary") 
+      }
+      
       #coerce into non-imaginary components
-      roots.num <- apply(roots, 1, as.numeric)
-      #extract the non-negative value
-      Ci.extract.A2 <- apply(roots.num, 1, max) 
+      roots.num <- Re(roots)
+      # extract the non-negative value
+      Ci.extract.A2 <- max(roots.num)
+      
+      # calculate A2
       AA2 <- A2(Ci.extract.A2, Tv = input.df$Tv, PAR = input.df$PAR, Vmo = Vmo, alpha = alpha)  # only works if PAR has values 6 orders of magnitude higher
       
+      
+      ### Build output data frame
       # pick minimum for each time point: 
       A.df <- data.frame (AA1 = AA1, AA2 = AA2, Ci.A1 = Ci.extract.A1, Ci.A2 = Ci.extract.A2)
       A.df$A.min <- apply(A.df[,1:2], 1, min)
@@ -245,7 +196,7 @@ farquharSolver <- function (input.df, stomata = c('open', 'closed')) {
    if(stomata == 'open') {
       ### CO2 limited coefficients
       aa <- ((b * X * input.df$Ca) + (1.6 * FF * input.df$Vcmax * input.df$comp) + (1.6 * FF * Rd * X) + 
-         (M * input.df$Vcmax * input.df$comp * input.df$Ca) + (M * Rd * X * input.df$Ca))
+            (M * input.df$Vcmax * input.df$comp * input.df$Ca) + (M * Rd * X * input.df$Ca))
       bb <- ((b * input.df$Ca) - (b * X) - (1.6 * FF * input.df$Vcmax) + (1.6 * FF * Rd) + (M * input.df$Vcmax * input.df$Ca) +
             (M * input.df$Vcmax * input.df$comp) + (Rd * M * input.df$Ca) + (M * Rd * X))
       cc <- ((-b * FF) + (M * input.df$Vcmax) - (M * Rd))
@@ -254,10 +205,17 @@ farquharSolver <- function (input.df, stomata = c('open', 'closed')) {
       z <- data.frame(aa = aa, bb = bb, cc = cc)  # where aa + bb*c1 + cc*c1^2
       #solve the polynomial
       roots <- apply(z, 1, polyroot)
+      
+      if(round(Im(roots[1]), 10) != 0) { 
+         stop("quadratic roots are imaginary") 
+      }
+      
       #coerce into non-imaginary components
-      roots.num <- apply(roots, 1, as.numeric)
+      roots.num <- Re(roots)
       #extract the non-negative value
-      Ci.extract.A1 <- apply(roots.num, 1, max) 
+      Ci.extract.A1 <- max(roots.num)
+      
+      #calculate A1
       AA1 <- A1(Ci.extract.A1, input.df$Tv, Vmo = Vmo, gamma = gamma)
       
       
@@ -272,12 +230,21 @@ farquharSolver <- function (input.df, stomata = c('open', 'closed')) {
       z <- data.frame(aa = aa, bb = bb, cc = cc)  # where aa + bb*c1 + cc*c1^2
       #solve the polynomial
       roots <- apply(z, 1, polyroot)
-      #coerce into non-imaginary components
-      roots.num <- apply(roots, 1, as.numeric)
-      #extract the non-negative value
-      Ci.extract.A2 <- apply(roots.num, 1, max) 
-      AA2 <- A2(Ci.extract.A2, Tv = input.df$Tv, PAR = input.df$PAR, Vmo = Vmo, alpha = alpha)  # only works if PAR has values 6 orders of magnitude higher
       
+      if(round(Im(roots[1]), 10) != 0) { 
+         stop("quadratic roots are imaginary") 
+      }
+      
+      # coerce into non-imaginary components
+      roots.num <- Re(roots) 
+      # extract the non-negative value
+      Ci.extract.A2 <- max(roots.num)
+      
+      # calculate A2
+      AA2 <- A2(Ci.extract.A2, Tv = input.df$Tv, PAR = input.df$PAR, Vmo = Vmo, alpha = alpha)  # only works if PAR has values 6 orders of magnitude higher
+
+      
+      ### build output data frame
       # pick minimum for each time point: 
       A.df <- data.frame (AA1 = AA1, AA2 = AA2, Ci.A1 = Ci.extract.A1, Ci.A2 = Ci.extract.A2)
       A.df$A.min <- apply(A.df[,1:2], 1, min)
@@ -292,3 +259,35 @@ farquharSolver <- function (input.df, stomata = c('open', 'closed')) {
 }
 
 
+
+
+##### The Data #####
+### Dummy data ###
+dummy <- data.frame(time = c(0:23))
+dummy$Tv <- c(seq(280,300, length.out = 12), seq(300, 280, length.out = 12))
+dummy$relHum <- c(rep(70, 3), 80, 80, 90, 100, 100, 90, 80, 70, 60, 50, 40, 50, 60, rep(70, 8))
+dummy$Ca <- rep(400, 24)
+dummy$comp <- comp(Tv = dummy$Tv)
+dummy$Vcmax <- Vcmax(Vmo = 35, Tv = dummy$Tv)
+dummy$el <- el(Tv = dummy$Tv)
+dummy$ea <- ea(relHum = dummy$relHum, Tv = dummy$Tv)
+dummy$PAR <- c(rep(0, 5), seq(0, 0.002, length.out = 7), seq(0.002, 0, length.out = 7), rep(0,5))
+# more realistic dummy PAR: 
+dummy$PAR <- c(rep(0, 5), seq(0, 2000, length.out = 7), seq(2000, 0, length.out = 7), rep(0, 5))
+
+
+
+### Real data ###
+dat <- read.csv('Aggregated_Climate_Data.csv', header=TRUE)
+dat$Tv <- dat$Air_Temp_K 
+dat$relhum <- dat$Relative_Humidity_Percent
+dat$Ca <- dat$Atmospheric_CO2
+dat$comp <- comp(Tv = dat$Tv)
+dat$Vcmax <- Vcmax(Vmo = 35, Tv = dat$Tv)
+dat$el <- el(Tv = dat$Tv)
+dat$ea <- ea(relHum = dat$relhum, Tv = dat$Tv)
+dat$PAR <- dat$Par_moles_m2_s
+
+##### Applying the farquhar_solver function #####
+farquhar_solver(input.df = dummy, stomata = 'closed')
+farquhar_solver(input.df = dummy, stomata = 'open') 
