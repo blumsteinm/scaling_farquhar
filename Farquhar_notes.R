@@ -76,14 +76,14 @@ gsw <- function(Amin, M = 9, Do = 1.3, b = 2, Ca, Tv, open = TRUE) {
 # Tv = leaf temperature (Kelvin)
 
 ## new Vcmax equation (for Vcmax at 25c): ***** USED THIS ONE ****
-
+# Kattge 2007 
 # Vcmax = Vmo * exp((36380 * (Tv - 298))/(298*8.314*Tv))
 # Vmo is between 58 and 92, for different connifers
 Vcmax <- function (Vmo, Tv) {
    Vmo * exp((36380 * (Tv - 298)) / (298 * 8.314 * Tv))
 }
 
-
+# From Medvigy
 # comp = 21.2 * exp(5000 * ((1/288.15) - (1/Tv)))  #CO2 compensation point where photosynthesis = respiration 
 comp <- function(Tv) { 21.2 * exp(5000 * ((1/288.15) - (1/Tv))) } #units: umol/mol
 

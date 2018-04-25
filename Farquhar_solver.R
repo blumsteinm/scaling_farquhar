@@ -11,6 +11,7 @@
 
 # Rd = gamma * vcmax; gamma = 0.015
 # vcmax in this context is at 25 C 
+# CO2-limited assimilation
 
 A1<- function(Ci, Tv, Vmo = 35, gamma = 0.015) {
    VCmax_fixedT <- Vcmax(Vmo = Vmo, Tv = Tv)
@@ -56,23 +57,34 @@ gsw <- function(Amin, M = 9, Do = 1.3, b = 2, Ca, Tv, open = TRUE) {
 
 ##### The calculated variables #####
 #### Parameters we can calculate or get trait values for: 
+## Vcmax is from Medvigy 
 # Vcmax = (Vmo * exp(3000*(1/288.15 -1/Tv))) / ((1+exp(.4(Tvlo - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
-# Vcmax <- function (Vmo, Tvlo, Tv) {  #Vmo, Tvlo are constants 
-#    (Vmo * exp(3000 * (1/288.15 -1/Tv))) / ((1 + exp(.4 * (Tvlo - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
+Vcmax <- function (Vmo, Tvlo, Tv) {  #Vmo, Tvlo are constants
+   (Vmo * (exp(3000 * (1/288.15 -1/Tv)))) /
+   ((1 + exp(.4 * (Tvlo - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
+}
+# 
+# Vcmax <- function (Vmo, Tvlo, Tv) {  #Vmo, Tvlo are constants
+#    (Vmo * (exp(3000 * (1/288.15 -1/Tv)))) / 
+#       ((1 + exp(.4 * (Tv - Tvlo))) * (1 + exp(0.4 * (Tv - 318.15))))
 # }
+
+
+# Vmo = 6.3 umol/m2/sec (Medvigy 2009, table 3)
 # Vmo = Vc at 25C or 15C  #Vcmax should be ~40 at 25 degrees
-# Tvlo = Low temperature threshold (Kelvin)
+# Tvlo = Low temperature threshold (Kelvin) = 4.7 C = 277.85 Kelvin
 # Tv = leaf temperature (Kelvin)
 
-## new Vcmax equation (for Vcmax at 25c): ***** USED THIS ONE ****
-
+## new Vcmax equation (for Vcmax at 25c):
+# Kattge 2007, Plant, Cell and Environment
 # Vcmax = Vmo * exp((36380 * (Tv - 298))/(298*8.314*Tv))
-# Vmo is between 58 and 92, for different connifers
-Vcmax <- function (Vmo, Tv) {
-   Vmo * exp((36380 * (Tv - 298)) / (298 * 8.314 * Tv))
-}
+# Vmo is between 58 and 92, for different connifers (eqn 9)
+# Vcmax <- function (Vmo, Tv) {
+#    Vmo * exp((36380 * (Tv - 298)) / (298 * 8.314 * Tv))
+# }
 
 
+# Compensation point equation from Medgivy 
 # comp = 21.2 * exp(5000 * ((1/288.15) - (1/Tv)))  #CO2 compensation point where photosynthesis = respiration 
 comp <- function(Tv) { 21.2 * exp(5000 * ((1/288.15) - (1/Tv))) } #units: umol/mol
 
@@ -119,11 +131,15 @@ ea <- function (relHum, Tv) {
 farquhar_solver <- function (input.df, stomata = c('open', 'closed')) { 
    ## defaults that we'd like to avoid including in the giant function call
    gamma <- 0.015
-   Vmo <- 35
+   Vmo <- 6.3 #92 #35
    b <- 2
    alpha <- 0.04
    Do <- 1.3 
    M <- 9
+   Tvlo <- 277.85
+   
+   # get rid of vcmax temperature dependance for troubleshooting
+   input.df$Vcmax <- 60
    
    # calculated in function
    Rd <- gamma * input.df$Vcmax
@@ -132,6 +148,20 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
    X = k1.dat * (1 + k2.dat)
    Y <- alpha * input.df$PAR
    FF <- ((input.df$Ca - input.df$comp) * (1 + ((input.df$el - input.df$ea)/Do)))
+   
+   
+   # relevant functions
+   A1<- function(Ci, Tv, Vmo = 35, gamma = 0.015) {
+      Rd <- gamma * input.df$Vcmax
+      A <- (input.df$Vcmax * (Ci - comp(Tv))) / (Ci + K1(Tv)*(1+K2(Tv))) - Rd
+      return(A)
+   }
+   
+   A2 <- function(Ci, Tv, PAR = 1000, Vmo = 35, alpha = 0.04, gamma = 0.015) {
+      Rd <- gamma * input.df$Vcmax
+      A <- alpha * PAR * ((Ci - comp(Tv)) / (Ci + 2 * comp(Tv))) - Rd
+      return(A)
+   }
    
    ### stomata closed ###
    if(stomata == 'closed') {
@@ -255,6 +285,8 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
       
       A.df$gsw <- gsw.solve
    }
+   
+   
    return(A.df)
 }
 
@@ -268,7 +300,7 @@ dummy$Tv <- c(seq(280,300, length.out = 12), seq(300, 280, length.out = 12))
 dummy$relHum <- c(rep(70, 3), 80, 80, 90, 100, 100, 90, 80, 70, 60, 50, 40, 50, 60, rep(70, 8))
 dummy$Ca <- rep(400, 24)
 dummy$comp <- comp(Tv = dummy$Tv)
-dummy$Vcmax <- Vcmax(Vmo = 35, Tv = dummy$Tv)
+dummy$Vcmax <- Vcmax(Vmo = 6.3, Tv = dummy$Tv, Tvlo = 277.85)
 dummy$el <- el(Tv = dummy$Tv)
 dummy$ea <- ea(relHum = dummy$relHum, Tv = dummy$Tv)
 dummy$PAR <- c(rep(0, 5), seq(0, 0.002, length.out = 7), seq(0.002, 0, length.out = 7), rep(0,5))
@@ -286,7 +318,7 @@ dat$comp <- comp(Tv = dat$Tv)
 dat$Vcmax <- Vcmax(Vmo = 35, Tv = dat$Tv)
 dat$el <- el(Tv = dat$Tv)
 dat$ea <- ea(relHum = dat$relhum, Tv = dat$Tv)
-dat$PAR <- dat$Par_moles_m2_s
+dat$PAR <- dat$Par_moles_m2_s * 1000000 ### only keep this until push updated to git 
 
 ##### Applying the farquhar_solver function #####
 farquhar_solver(input.df = dummy, stomata = 'closed')
