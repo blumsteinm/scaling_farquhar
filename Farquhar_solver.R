@@ -33,7 +33,7 @@ A2 <- function(Ci, Tv, PAR = 1000, Vmo = 35, alpha = 0.04, gamma = 0.015) {
 }
 
 
-### Equation 2: Stomatal conductance Model (Leunning)
+### Equation 2: Stomatal conductance Model (Leunning); Medvigy
 # gsw = ((M * A) / ((Cs - comp) * (1 + (el - es)/Do))) + b    # open stomata
 #       b                                                     # closed stomata
 # b <- function (Tv) {}
@@ -61,8 +61,18 @@ gsw <- function(Amin, M = 9, Do = 1.3, b = 2, Ca, Tv, open = TRUE) {
 # Vcmax = (Vmo * exp(3000*(1/288.15 -1/Tv))) / ((1+exp(.4(Tvlo - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
 Vcmax <- function (Vmo, Tvlo, Tv) {  #Vmo, Tvlo are constants
    (Vmo * (exp(3000 * (1/288.15 -1/Tv)))) /
-   ((1 + exp(.4 * (Tvlo - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
+   ((1 + exp(.4 * (277.15 - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
 }
+
+##### VCmax equation with Paul
+Tv <- 270:320
+C1 <- 1 # 2.12e-5  #missing in original coding of this equation
+C2 <- 3000
+Vmo <- 23
+num<- Vmo * (C1 *exp(C2 * (1/288.15 -1/Tv)))
+denom<-1/((1 + exp(.4 * (277.15 - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
+plot(Tv, num*denom)
+
 # 
 # Vcmax <- function (Vmo, Tvlo, Tv) {  #Vmo, Tvlo are constants
 #    (Vmo * (exp(3000 * (1/288.15 -1/Tv)))) / 
@@ -84,7 +94,7 @@ Vcmax <- function (Vmo, Tvlo, Tv) {  #Vmo, Tvlo are constants
 # }
 
 
-# Compensation point equation from Medgivy 
+# Compensation point equation from Medgivy (b.7)
 # comp = 21.2 * exp(5000 * ((1/288.15) - (1/Tv)))  #CO2 compensation point where photosynthesis = respiration 
 comp <- function(Tv) { 21.2 * exp(5000 * ((1/288.15) - (1/Tv))) } #units: umol/mol
 
@@ -119,7 +129,7 @@ el <- function(Tv) {
 }
 
 ea <- function (relHum, Tv) {
-   relHum / el(Tv)
+   relHum * el(Tv)  # changed from multiplication to divide; Campbell and Norman page 42
 }
 
 
@@ -131,15 +141,15 @@ ea <- function (relHum, Tv) {
 farquhar_solver <- function (input.df, stomata = c('open', 'closed')) { 
    ## defaults that we'd like to avoid including in the giant function call
    gamma <- 0.015
-   Vmo <- 6.3 #92 #35
+   Vmo <- 23 #92 #35
    b <- 2
    alpha <- 0.04
    Do <- 1.3 
-   M <- 9
+   M <- 9  #stomatal slope; unitless; Raczka et al 2016, Biogeosciences; (also Heroult 2013, Plant Cell & Environment)
    Tvlo <- 277.85
    
    # get rid of vcmax temperature dependance for troubleshooting
-   input.df$Vcmax <- 60
+   # input.df$Vcmax <- 60
    
    # calculated in function
    Rd <- gamma * input.df$Vcmax
@@ -181,7 +191,7 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
       #coerce into non-imaginary components
       roots.num <- Re(roots)
       #extract the non-negative value
-      Ci.extract.A1 <- max(roots.num) 
+      Ci.extract.A1 <- apply(roots.num, 2, max)
       
       # calculate A
       AA1 <- A1(Ci.extract.A1, input.df$Tv, Vmo = Vmo, gamma = gamma)
@@ -203,7 +213,7 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
       #coerce into non-imaginary components
       roots.num <- Re(roots)
       # extract the non-negative value
-      Ci.extract.A2 <- max(roots.num)
+      Ci.extract.A2 <- apply(roots.num, 2, max)
       
       # calculate A2
       AA2 <- A2(Ci.extract.A2, Tv = input.df$Tv, PAR = input.df$PAR, Vmo = Vmo, alpha = alpha)  # only works if PAR has values 6 orders of magnitude higher
@@ -224,12 +234,14 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
    
    #### Stomata Open ###
    if(stomata == 'open') {
+      ############ vvvvv THIS IS WRONG!!!!!!! vvvvv ************
       ### CO2 limited coefficients
       aa <- ((b * X * input.df$Ca) + (1.6 * FF * input.df$Vcmax * input.df$comp) + (1.6 * FF * Rd * X) + 
             (M * input.df$Vcmax * input.df$comp * input.df$Ca) + (M * Rd * X * input.df$Ca))
       bb <- ((b * input.df$Ca) - (b * X) - (1.6 * FF * input.df$Vcmax) + (1.6 * FF * Rd) + (M * input.df$Vcmax * input.df$Ca) +
             (M * input.df$Vcmax * input.df$comp) + (Rd * M * input.df$Ca) + (M * Rd * X))
       cc <- ((-b * FF) + (M * input.df$Vcmax) - (M * Rd))
+      ############ ^^^^^ THIS IS WRONG!!!!!!! ^^^^^ ************
       
       # define polynomial roots for each data point
       z <- data.frame(aa = aa, bb = bb, cc = cc)  # where aa + bb*c1 + cc*c1^2
@@ -243,7 +255,7 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
       #coerce into non-imaginary components
       roots.num <- Re(roots)
       #extract the non-negative value
-      Ci.extract.A1 <- max(roots.num)
+      Ci.extract.A1 <- apply(roots.num, 2, max)
       
       #calculate A1
       AA1 <- A1(Ci.extract.A1, input.df$Tv, Vmo = Vmo, gamma = gamma)
@@ -268,7 +280,7 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
       # coerce into non-imaginary components
       roots.num <- Re(roots) 
       # extract the non-negative value
-      Ci.extract.A2 <- max(roots.num)
+      Ci.extract.A2 <- apply(roots.num, 2, max)
       
       # calculate A2
       AA2 <- A2(Ci.extract.A2, Tv = input.df$Tv, PAR = input.df$PAR, Vmo = Vmo, alpha = alpha)  # only works if PAR has values 6 orders of magnitude higher
@@ -290,8 +302,12 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
    return(A.df)
 }
 
-
-
+### GSW troubleshooting 
+M<-9
+input.df <- dummy
+A.min <- closed.sol$A.min
+Do <- 1.3
+((M * A.min)/((input.df$Ca - input.df$comp) * (1 + ((input.df$el - input.df$ea)/Do))))
 
 ##### The Data #####
 ### Dummy data ###
