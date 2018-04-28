@@ -66,32 +66,32 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
    
    
    ### relevant functions
-   # # A1 = [(Vcmax * (Ci - comp)) / (Ci + K1 * (1+K2)) ] - Rd
-   # # A1 = [(Vcmax * (Ci - comp)) / (Ci + X) ] - Rd
-   # A1<- function(Ci, input.df) {
-   #    A <- ((input.df$Vcmax * (Ci - input.df$comp)) / (Ci + input.df$X)) - input.df$Rd
-   #    return(A)
+   # A1 = [(Vcmax * (Ci - comp)) / (Ci + K1 * (1+K2)) ] - Rd
+   # A1 = [(Vcmax * (Ci - comp)) / (Ci + X) ] - Rd
+   A1<- function(Ci, input.df) {
+      A <- ((input.df$Vcmax * (Ci - input.df$comp)) / (Ci + input.df$X)) - input.df$Rd
+      return(A)
+   }
+
+   # A2 = [ alpha * PAR * (Ci - comp) / (Ci + 2comp) ] - Rd
+   A2 <- function(Ci, input.df) {
+      A <- (alpha * input.df$PAR * ((Ci - input.df$comp) / (Ci + 2 * input.df$comp))) - input.df$Rd
+      return(A)
+   }
+   # 
+   
+   # #Actually want to be solving for and minimizing J (post-quadratic) and minimizing, THEN subtracting R
+   # 
+   # J1 <- function(Ci, input.df) {
+   #    J <- ((input.df$Vcmax * (Ci - input.df$comp)) / (Ci + input.df$X))
+   #    return(J)
    # }
    # 
-   # # A2 = [ alpha * PAR * (Ci - comp) / (Ci + 2comp) ] - Rd
-   # A2 <- function(Ci, input.df) {
-   #    A <- (alpha * input.df$PAR * ((Ci - input.df$comp) / (Ci + 2 * input.df$comp))) - input.df$Rd
-   #    return(A)
+   # J2 <- function(Ci, input.df) {
+   #    J <- (alpha * input.df$PAR * ((Ci - input.df$comp) / (Ci + 2 * input.df$comp))) 
+   #    return(J)
    # }
    # 
-   
-   #Actually want to be solving for and minimizing J (post-quadratic) and minimizing, THEN subtracting R
-   
-   J1 <- function(Ci, input.df) {
-      J <- ((input.df$Vcmax * (Ci - input.df$comp)) / (Ci + input.df$X))
-      return(J)
-   }
-   
-   J2 <- function(Ci, input.df) {
-      J <- (alpha * input.df$PAR * ((Ci - input.df$comp) / (Ci + 2 * input.df$comp))) 
-      return(J)
-   }
-   
    ### stomata closed ###
    if(stomata == 'closed') {
       ### CO2 limited case, coefficients for polyroot function
