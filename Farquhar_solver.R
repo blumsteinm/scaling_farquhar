@@ -59,9 +59,9 @@ gsw <- function(Amin, M = 9, Do = 1.3, b = 2, Ca, Tv, open = TRUE) {
 #### Parameters we can calculate or get trait values for: 
 ## Vcmax is from Medvigy 
 # Vcmax = (Vmo * exp(3000*(1/288.15 -1/Tv))) / ((1+exp(.4(Tvlo - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
-Vcmax <- function (Vmo, Tvlo, Tv) {  #Vmo, Tvlo are constants
+Vcmax <- function (Vmo, Tvlo, Tv) {  #Vmo = 23, Tvlo = 277.15 are constants
    (Vmo * (exp(3000 * (1/288.15 -1/Tv)))) /
-   ((1 + exp(.4 * (277.15 - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
+   ((1 + exp(.4 * (Tvlo - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
 }
 
 ##### VCmax equation with Paul
@@ -72,6 +72,16 @@ Vmo <- 23
 num<- Vmo * (C1 *exp(C2 * (1/288.15 -1/Tv)))
 denom<-1/((1 + exp(.4 * (277.15 - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
 plot(Tv, num*denom)
+
+# Vcmax <- function(Tv) {
+#    C1 <- 1
+#    C2 <- 3000
+#    Vmo <- 23
+#    num<- Vmo * (C1 *exp(C2 * (1/288.15 -1/Tv)))
+#    denom<-1/((1 + exp(.4 * (277.15 - Tv))) * (1 + exp(0.4 * (Tv - 318.15))))
+#    Vc <- num * denom
+#    return(Vc) 
+# }
 
 # 
 # Vcmax <- function (Vmo, Tvlo, Tv) {  #Vmo, Tvlo are constants
@@ -129,7 +139,7 @@ el <- function(Tv) {
 }
 
 ea <- function (relHum, Tv) {
-   relHum * el(Tv)  # changed from multiplication to divide; Campbell and Norman page 42
+   relHum /(100 * el(Tv))  # changed from multiplication to divide; Campbell and Norman page 42
 }
 
 
@@ -139,6 +149,8 @@ ea <- function (relHum, Tv) {
 
 ##### The Farquhar Solver Function #####
 farquhar_solver <- function (input.df, stomata = c('open', 'closed')) { 
+   ## input.df needs to have columns for Tv and Ca and relhum. the rest can be calculated... 
+   
    ## defaults that we'd like to avoid including in the giant function call
    gamma <- 0.015
    Vmo <- 23 #92 #35
@@ -148,8 +160,9 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
    M <- 9  #stomatal slope; unitless; Raczka et al 2016, Biogeosciences; (also Heroult 2013, Plant Cell & Environment)
    Tvlo <- 277.85
    
-   # get rid of vcmax temperature dependance for troubleshooting
-   # input.df$Vcmax <- 60
+   ## Functions used to calculate other inputs from input.df
+   input.df$Vcmax <- Vcmax(Vmo = Vmo, Tvlo = Tvlo, Tv = input.df$Tv )
+   
    
    # calculated in function
    Rd <- gamma * input.df$Vcmax
@@ -167,9 +180,9 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
       return(A)
    }
    
-   A2 <- function(Ci, Tv, PAR = 1000, Vmo = 35, alpha = 0.04, gamma = 0.015) {
+   A2 <- function(Ci, Tv, PAR, Vmo, alpha = 0.04, gamma = 0.015) {
       Rd <- gamma * input.df$Vcmax
-      A <- alpha * PAR * ((Ci - comp(Tv)) / (Ci + 2 * comp(Tv))) - Rd
+      A <- (alpha * PAR * ((Ci - comp(Tv)) / (Ci + 2 * comp(Tv)))) - Rd
       return(A)
    }
    
