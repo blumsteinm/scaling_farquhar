@@ -220,3 +220,17 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
    
    return(A.df)
 }
+
+
+##### Applying the farquhar_solver function #####
+farquhar_solver(input.df = dummy, stomata = 'closed')
+farquhar_solver(input.df = dummy, stomata = 'open') 
+
+#### Check against plantecophs package... ####
+dummy$VPD<- dummy$el-dummy$ea
+dummy$Tair<-dummy$Tv-274.15
+
+FARAO(Ca=dummy$Ca, VPD=dummy$VPD, Tair=dummy$Tair)
+
+
+
