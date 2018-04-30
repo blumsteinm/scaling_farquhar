@@ -155,10 +155,10 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
    if(stomata == 'open') {
       ############ vvvvv THIS IS WRONG!!!!!!! vvvvv ************
       ### CO2 limited coefficients
-      aa <- ((b * input.df$X * input.df$Ca) + (1.6 * input.df$FF * input.df$Vcmax * input.df$comp) + (1.6 * input.df$FF * input.df$Rd * input.df$X) + 
+      aa <- ((b * input.df$X * input.df$Ca * input.df$FF) + (1.6 * input.df$FF * input.df$Vcmax * input.df$comp) - (1.6 * input.df$FF * input.df$Rd * input.df$X) - 
             (M * input.df$Vcmax * input.df$comp * input.df$Ca) + (M * input.df$Rd * input.df$X * input.df$Ca))
-      bb <- ((b * input.df$Ca) - (b * input.df$X) - (1.6 * input.df$FF * input.df$Vcmax) + (1.6 * input.df$FF * input.df$Rd) + (M * input.df$Vcmax * input.df$Ca) +
-            (M * input.df$Vcmax * input.df$comp) + (input.df$Rd * M * input.df$Ca) + (M * input.df$Rd * input.df$X))
+      bb <- ((-input.df$FF * b * input.df$Ca) - (b * input.df$X) - (1.6 * input.df$FF * input.df$Vcmax) + (1.6 * input.df$FF * input.df$Rd) + (M * input.df$Vcmax * input.df$Ca) +
+            (M * input.df$Vcmax * input.df$comp) - (input.df$Rd * M * input.df$Ca) + (M * input.df$Rd * input.df$X))
       cc <- ((-b * input.df$FF) + (M * input.df$Vcmax) - (M * input.df$Rd))
       ############ ^^^^^ THIS IS WRONG!!!!!!! ^^^^^ ************
       
@@ -181,10 +181,10 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
       
       
       ### Light-limited coefficients
-      aa <- ((b * input.df$FF * input.df$Ca * 2 * input.df$comp) + (1.6 * input.df$FF * input.df$Y * input.df$comp) + (1.6 * input.df$FF * input.df$Rd * 2 * input.df$comp) - 
-            (M * input.df$Ca * input.df$Y * input.df$comp) - (M * input.df$Rd * 2 * input.df$comp * input.df$Ca))
+      aa <- ((b * input.df$FF * input.df$Ca * 2 * input.df$comp) - (1.6 * input.df$FF * input.df$Y * input.df$comp) + (1.6 * input.df$FF * input.df$Rd * 2 * input.df$comp) - 
+            (M * input.df$Ca * input.df$Y * input.df$comp) + (M * input.df$Rd * 2 * input.df$comp * input.df$Ca))
       bb <- ((b * input.df$FF * input.df$Ca) - (b * input.df$FF * 2 * input.df$comp) - (1.6 * input.df$FF * input.df$Y) + (1.6 * input.df$FF * input.df$Rd) + (M * input.df$Y * input.df$Ca) +
-            (M * input.df$Y * input.df$comp) - (M * input.df$Rd * input.df$Ca) + (M * input.df$Rd * 2 * input.df$comp))
+            (M * input.df$Y * input.df$comp) - (M * input.df$Rd * input.df$Ca) - (M * input.df$Rd * 2 * input.df$comp))
       cc <- ((-b * input.df$FF) - (M * input.df$Y) + (M * input.df$Rd))
       
       # define polynomial roots for each data point
