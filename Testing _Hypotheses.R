@@ -6,6 +6,7 @@ require(dplyr)
 #### Now look at real climate_dataa to compare ####
 dat <- read.csv("/Users/Meghs/Documents/GitHub/scaling_farquhar/Aggregated_Climate_Data.csv", header = T)
 lai <- read.csv('/Users/Meghs/Documents/GitHub/scaling_farquhar/hf150-01-hem-lai.csv', header=TRUE)
+plantecophys <- read.csv("/Users/Meghs/Documents/GitHub/scaling_farquhar/plantecophys_output.csv")
 
 ## Assign variables new names and configurations for model
 dat$Tv <- dat$Air_Temp_K
@@ -39,14 +40,24 @@ dat.check<-dat.check[(dat.check$time<24),]
 dat.check$VPD<- dat.check$el-dat.check$ea
 dat.check$Tair<-dat.check$Tv-273.15
 
-FARAO(Ca=dat.check$Ca, VPD=dat.check$VPD, Tair=dat.check$Tair)
+## Run model on subsetted data
+assimilation <- farquhar_solver(input.df = dat.check, stomata = 'open') 
+
+## Combine information 
+assimilation_ours <- cbind(assimilation, dat.check)
+assimilation_plant <- cbind(plantecophys, dat.check)
+
+## Plot up initial results
+plot(A.min ~ hour, data = assimilation_ours, pch = 16, family = "serif", col = "steelblue", ylab = "A.min", xlab = "Hour of Day", main = "Assimilation: August 13, 2013", type = "o", lwd = 2, ylim = c(0,10))
+
+## Compare to plant ecophys
+lines(ALEAF ~ hour, data = assimilation_plant, pch = 16, family = "serif", col = "forestgreen", type = 'o')
+
+## Scale up and see what it looks like & plot against flux data - how different is it
+plot(assimilation_ours$A.min * mean(lai$lai.sum), pch = 16, col = "coral", type = "o", ylab = "Assimilation per leaf * Leaf Area Index", xlab = "Hour of Day", main = "August 13, 2013 Scaled")
 
 
-# climate_data_subset <- climate_data[climate_data$year == 2013 & climate_data$day == 13 & climate_data$month == 8,]
-# climate_data_subset <- climate_data[climate_data$hour > 6 & climate_data$hour < 18,]
 
 
-## Run model on 
-farquhar_solver(input.df = dat.check, stomata = 'open') 
 
 
