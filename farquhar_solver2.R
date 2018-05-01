@@ -179,7 +179,6 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
       #calculate A1
       AA1 <- A1(Ci = Ci.extract.A1, input.df = input.df)
       
-      
       ### Light-limited coefficients
       aa <- ((b * input.df$FF * input.df$Ca * 2 * input.df$comp) - (1.6 * input.df$FF * input.df$Y * input.df$comp) + (1.6 * input.df$FF * input.df$Rd * 2 * input.df$comp) - 
             (M * input.df$Ca * input.df$Y * input.df$comp) + (M * input.df$Rd * 2 * input.df$comp * input.df$Ca))
@@ -221,64 +220,66 @@ farquhar_solver <- function (input.df, stomata = c('open', 'closed')) {
    return(A.df)
 }
 
-
-##### Applying the farquhar_solver function #####
-farquhar_solver(input.df = dummy, stomata = 'closed')
-farquhar_solver(input.df = dummy, stomata = 'open') 
-
-#### Check against plantecophs package... ####
-dummy$el <- el(Tv = dummy$Tv)
-dummy$ea <- ea(relHum = dummy$relHum, Tv = dummy$Tv)
-dummy$VPD<- dummy$el-dummy$ea
-dummy$Tair<-dummy$Tv-273.15
-
-FARAO(Ca=dummy$Ca, VPD=dummy$VPD, Tair=dummy$Tair)
-
-
-#### Now look at real data to compare ####
-dat <- read.csv('~/Documents/git/scaling_farquhar/Aggregated_Climate_Data.csv', header=TRUE)
-dat$Tv <- dat$Air_Temp_K 
-dat$Tv<-ave(dat$Tv, dat$month, dat$year, dat$day, dat$hour)
-dat$relHum <- dat$Relative_Humidity_Percent
-dat$relHum<-ave(dat$relHum, dat$month, dat$year, dat$day, dat$hour)
-dat$Ca <- as.numeric(dat$Atmospheric_CO2)
-dat$Ca <- ave(dat$Ca, dat$month, dat$year, dat$day, dat$hour)
-dat$comp <- comp(Tv = dat$Tv)
-dat$comp<-ave(dat$comp, dat$month, dat$year, dat$day, dat$hour)
-dat$Vcmax <- Vcmax(Vmo = 35, Tv = dat$Tv, Tvlo=277.85)
-dat$Vcmax<-ave(dat$Vcmax, dat$month, dat$year, dat$day, dat$hour)
-dat$el <- el(Tv = dat$Tv)
-dat$el<-ave(dat$el, dat$month, dat$year, dat$day, dat$hour)
-dat$ea <- ea(relHum = dat$relHum, Tv = dat$Tv)
-dat$ea<-ave(dat$ea, dat$month, dat$year, dat$day, dat$hour)
-dat$PAR <- dat$Par_moles_m2_s * 1000000 ### only keep this until push updated to git 
-dat$PAR<-ave(dat$PAR, dat$month, dat$year, dat$day, dat$hour)
-dat$time<-dat$hour
-
-library(dplyr)
-dat.check<-dat%>%filter(year==2013)%>%filter(month==8)%>%filter(day==13)%>% ### choose this date due to LAI information
-   dplyr::select(hour, Tv, relHum, Ca, comp, Vcmax, el, ea, PAR, time)
-dat.check<-dat.check[!duplicated(dat.check),]
-
-dat.check<-dat.check[(dat.check$time<24),]
-
-library(plantecophys)
-dat.check$VPD<- dat.check$el-dat.check$ea
-#dat.check$VPDx<-RHtoVPD(dat.check$relHum, TdegC = dat.check$Tv-273.15)
-dat.check$Tair<-dat.check$Tv-273.15
-
-FARAO(Ca=dat.check$Ca, VPD=dat.check$VPD, Tair=dat.check$Tair)
-
-##### Applying the farquhar_solver function to real data #####
-farquhar_solver(input.df = dat.check, stomata = 'closed')
-farquhar_solver(input.df = dat.check, stomata = 'open') 
-
-
-### And then here is the LAI info for scaling! ###
-lai <- read.csv('~/Documents/git/scaling_farquhar/hf150-01-hem-lai.csv', header=TRUE)
-lai<-lai%>%filter(date=="2013-08-13")
-lai$lai.sum<-ave(lai$lai.masked, FUN=sum) ## 54.28
-
+# 
+# ##### Applying the farquhar_solver function #####
+# farquhar_solver(input.df = dummy, stomata = 'closed')
+# farquhar_solver(input.df = dummy, stomata = 'open') 
+# 
+# #### Check against plantecophs package... ####
+# dummy$el <- el(Tv = dummy$Tv)
+# dummy$ea <- ea(relHum = dummy$relHum, Tv = dummy$Tv)
+# dummy$VPD<- dummy$el-dummy$ea
+# dummy$Tair<-dummy$Tv-273.15
+# 
+# FARAO(Ca=dummy$Ca, VPD=dummy$VPD, Tair=dummy$Tair)
+# 
+# 
+# #### Now look at real data to compare ####
+# dat <- read.csv('~/Documents/git/scaling_farquhar/Aggregated_Climate_Data.csv', header=TRUE)
+# dat <- read.csv("/Users/Meghs/Documents/GitHub/scaling_farquhar/Aggregated_Climate_Data.csv", header = T)
+# 
+# dat$Tv <- dat$Air_Temp_K
+# dat$Tv<-ave(dat$Tv, dat$month, dat$year, dat$day, dat$hour)
+# dat$relHum <- dat$Relative_Humidity_Percent
+# dat$relHum<-ave(dat$relHum, dat$month, dat$year, dat$day, dat$hour)
+# dat$Ca <- as.numeric(dat$Atmospheric_CO2)
+# dat$Ca <- ave(dat$Ca, dat$month, dat$year, dat$day, dat$hour)
+# dat$comp <- comp(Tv = dat$Tv)
+# dat$comp<-ave(dat$comp, dat$month, dat$year, dat$day, dat$hour)
+# dat$Vcmax <- Vcmax(Vmo = 35, Tv = dat$Tv, Tvlo=277.85)
+# dat$Vcmax<-ave(dat$Vcmax, dat$month, dat$year, dat$day, dat$hour)
+# dat$el <- el(Tv = dat$Tv)
+# dat$el<-ave(dat$el, dat$month, dat$year, dat$day, dat$hour)
+# dat$ea <- ea(relHum = dat$relHum, Tv = dat$Tv)
+# dat$ea<-ave(dat$ea, dat$month, dat$year, dat$day, dat$hour)
+# dat$PAR <- dat$Par_moles_m2_s * 1000000 ### only keep this until push updated to git
+# dat$PAR<-ave(dat$PAR, dat$month, dat$year, dat$day, dat$hour)
+# dat$time<-dat$hour
+# 
+# library(dplyr)
+# dat.check<-dat%>%filter(year==2013)%>%filter(month==8)%>%filter(day==13)%>% ### choose this date due to LAI information
+#    dplyr::select(hour, Tv, relHum, Ca, comp, Vcmax, el, ea, PAR, time)
+# dat.check<-dat.check[!duplicated(dat.check),]
+# 
+# dat.check<-dat.check[(dat.check$time<24),]
+# 
+# # library(plantecophys)
+# dat.check$VPD<- dat.check$el-dat.check$ea
+# #dat.check$VPDx<-RHtoVPD(dat.check$relHum, TdegC = dat.check$Tv-273.15)
+# dat.check$Tair<-dat.check$Tv-273.15
+# 
+# FARAO(Ca=dat.check$Ca, VPD=dat.check$VPD, Tair=dat.check$Tair)
+# 
+# ##### Applying the farquhar_solver function to real data #####
+# farquhar_solver(input.df = dat.check, stomata = 'closed')
+# farquhar_solver(input.df = dat.check, stomata = 'open')
+# 
+# 
+# ### And then here is the LAI info for scaling! ###
+# lai <- read.csv('~/Documents/git/scaling_farquhar/hf150-01-hem-lai.csv', header=TRUE)
+# lai<-lai%>%filter(date=="2013-08-13")
+# lai$lai.sum<-ave(lai$lai.masked, FUN=sum) ## 54.28
+# 
 
 
 
