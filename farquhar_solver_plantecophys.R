@@ -285,4 +285,4 @@ eco.phys.sol<-as.data.frame(FARAO(Ca=dat.check$Ca, VPD=dat.check$VPD, Tair=dat.c
 eco.phys.sol$HF.lai<-lai$lai.sum
 ###multiply them together to get the footprint level A
 eco.phys.sol$A.footprint<-eco.phys.sol$HF.la*eco.phys.sol$ALEAF
-
+write.csv(eco.phys.sol, file="~/Documents/git/scaling_farquhar/plantecophys_output.csv", row.names = FALSE)
