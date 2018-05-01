@@ -64,8 +64,13 @@ flux_weather$VPD <- ( (100 - flux_weather$Relative_Humidity_Percent)/100 ) * flu
 ## Save Out
 write.csv(flux_weather, paste0(github_folder, "Aggregated_Climate_Data.csv"), row.names = F)
 
+## Test Vmax with flux from june 1 2005
+test <- flux_weather[flux_weather$day == "01" & flux_weather$month == "06" & flux_weather$year == 2005 & flux_weather$minute == "00",]
 
+Ea <- 36.38 * 1000 ## kJ/mol, convert to J/mol
+R <- 8.314 ## J/mol/K
 
+58 * exp( (Ea * (test$Air_Temp_K -298))/( 298 * R * test$Air_Temp_K ) )
 
 # PAR (mol/m-2s-1) (micromolePerMeterSquaredPerSecond)
 # Air temperature (K) (C)
