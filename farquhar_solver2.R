@@ -2,7 +2,7 @@ dummy <- data.frame(time = c(0:23))
 dummy$Tv <- c(seq(280,300, length.out = 12), seq(300, 280, length.out = 12))
 dummy$PAR <- c(rep(0, 5), seq(0, 2000, length.out = 7), seq(2000, 0, length.out = 7), rep(0, 5))
 dummy$relHum <- c(rep(70, 3), 80, 80, 90, 100, 100, 90, 80, 70, 60, 50, 40, 50, 60, rep(70, 8))
-dummy$relHum <- c(rep(70, 24))
+dummy$relHum <- c(rep(.7, 24))
 dummy$Ca <- rep(400, 24)
 
 ### Dependent functions 
